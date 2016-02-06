@@ -1,0 +1,30 @@
+[user]
+  email = daniel.wood4@extendhealth.com
+	name = Daniel Wood
+[alias]
+  testshow = !echo "Testing echo from Git" && git show
+	unstage = reset HEAD --
+	last = log -l HEAD -6
+  resetweb = !echo "Resetting Web.config to HEAD version..." && reset HEAD src/ExtendHealth.OneExchange/Web.config &&  checkout src/ExtendHealth.OneExchange/Web.config
+	show = !gitk
+	call = commit -am
+ # pushto = "!f() { export tmp_branch=`git branch | grep '* ' | tr -d '* '` && git push origin $tmp_branch; unset $tmp_branch; echo 'Pushing to remote/origin:$tmp_branch' };"
+[push]
+	default = simple
+[diff]
+	tool = p4merge
+[difftool]
+	prompt = false
+[credential]
+	helper = osxkeychain
+[difftool "p4merge"]
+	cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge $LOCAL $REMOTE
+[merge]
+	tool = p4merge
+[mergetool "p4merge"]
+	cmd = /Applications/p4merge.app/Contents/Resources/launchp4merge $PWD/$BASE $PWD/$REMOTE $PWD/$LOCAL $PWD/$MERGED
+	trustExitCode = false
+[mergetool]
+	keepBackup = false
+[core]
+	excludesfile = ~/.gitignore
