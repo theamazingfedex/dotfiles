@@ -6,10 +6,10 @@
  endif
 
  " Required:
- set runtimepath^=~/.vim/bundle/neobundle.vim/
+ set runtimepath^=~/.nvim/bundle/neobundle.vim/
 
  " Required:
- call neobundle#begin(expand('~/.vim/bundle/'))
+ call neobundle#begin(expand('~/.nvim/bundle/'))
 
  " Let NeoBundle manage NeoBundle
  " Required:
@@ -32,12 +32,15 @@
   NeoBundle 'guns/xterm-color-table.vim'
   NeoBundle 'Yggdroot/indentLine'
   NeoBundle 'tpope/vim-obsession'
+  NeoBundle 'tmhedberg/matchit'
+  NeoBundle 'Townk/vim-autoclose'
   NeoBundle 'altercation/vim-colors-solarized'
   NeoBundle 'vim-airline/vim-airline-themes'
   NeoBundle 'https://github.com/jlanzarotta/bufexplorer'
   NeoBundle 'https://github.com/tpope/vim-surround'
   NeoBundle 'https://github.com/bling/vim-airline'
   NeoBundle 'https://github.com/scrooloose/nerdcommenter'
+  NeoBundle 'https://github.com/scrooloose/nerdtree'
   NeoBundle 'https://github.com/ctrlpvim/ctrlp.vim'
   NeoBundle 'https://github.com/tpope/vim-fugitive'
   NeoBundle 'https://github.com/terryma/vim-multiple-cursors'
@@ -65,6 +68,8 @@
    syntax on
    let g:solarized_termcolors=256
    let mapleader=","
+   let g:EasyMotion_leader_key=',,'
+   set esckeys
    set lazyredraw
    set mouse=a
    set clipboard=unnamed
@@ -81,6 +86,9 @@
    set statusline+=%#warningmsg#
    set statusline+=%*
    set statusline+=%{fugitive#statusline()}
+   set statusline+=%#NeotermTestRunning#%{neoterm#test#status('running')}%*
+   set statusline+=%#NeotermTestSuccess#%{neoterm#test#status('success')}%*
+   set statusline+=%#NeotermTestFailed#%{neoterm#test#status('failed')}%*
    set laststatus=2
    set cursorcolumn
    set cursorline
@@ -94,17 +102,17 @@
    set directory=~/.vim/tmp/swaps
 
    call matchadd('ColorColumn', '\%81v', 100)
+   ca ,, <esc>
 
   augroup mygroup
     au!
-    autocmd!
-    autocmd VimEnter * call SetGitDir()
-    autocmd! VimLeave,TermClose,BufHidden,BufWinLeave,BufLeave,BufFilePost,BufDelete,BufWipeout *.js lcl
+    au VimEnter * call SetGitDir()
+    au! VimLeave,TermClose,BufHidden,BufWinLeave,BufLeave,BufFilePost,BufDelete,BufWipeout *.js lcl
     "Note: read in .spark files as html for syntax highlighting
-    autocmd BufRead,BufNewFile *.spark set filetype=html
+    au BufRead,BufNewFile *.spark set filetype=html
     "Note: run eslint when opening and writing js files
-    autocmd! BufEnter *.js call EnterNeomake()
-    autocmd! BufWritePost *.js call SaveNeomake()
+    au! BufEnter *.js call EnterNeomake()
+    au! BufWritePost *.js call SaveNeomake()
   augroup END
 " Begin plugin configuration
  " Airline
@@ -166,37 +174,43 @@
     \ 'texthl': 'ErrorMsg',
     \ }
 
-" NerdCommenter
- let g:NERDCustomDelimiters = {
+ " NeoTerm
+  let g:neoterm_shell = 'bash'
+  let g:neoterm_position = 'horizontal'
+  let g:neoterm_automap_keys = '<leader>tt'
+  let g:neoterm_size=15
+
+ " NerdCommenter
+  let g:NERDCustomDelimiters = {
     \ 'javascript': { 'left': '// ', 'leftAlt': '{/* ', 'rightAlt': ' */}'}
     \ }
 
-" Begin Custom Functions
-let g:highlighting = 0
+ " Begin Custom Functions
+  let g:highlighting = 0
 
 function! Highlighting()
-if g:highlighting == 1 && @/ =~ '^\\<'.expand('<cword>').'\\>$'
-  let g:highlighting = 0
-  return ":silent nohlsearch\<CR>"
-endif
-let @/ = '\<'.expand('<cword>').'\>'
-let g:highlighting = 1
-return ":silent set hlsearch\<CR>"
+  if g:highlighting == 1 && @/ =~ '^\\<'.expand('<cword>').'\\>$'
+    let g:highlighting = 0
+    return ":silent nohlsearch\<CR>"
+  endif
+  let @/ = '\<'.expand('<cword>').'\>'
+  let g:highlighting = 1
+  return ":silent set hlsearch\<CR>"
 endfunction
 
 function! SetGitDir()
   " Change working dir to the current file
-    "cd %:p:h
-    " Set 'gitdir' to be the folder containing .git
-    let l:gitdir=system("git rev-parse --show-toplevel")
-    " See if the command output starts with 'fatal' (if it does, not in a git repo)
-    let l:isnotgitdir=matchstr(gitdir, '^fatal:.*')
-    " If it empty, there was no error. Let's cd
-    "if exists(l:gitdir)
-      "cd l:gitdir
-    if empty(l:isnotgitdir)
-        exe "lcd " . l:gitdir
-    endif
+  "cd %:p:h
+  " Set 'gitdir' to be the folder containing .git
+  let l:gitdir=system("git rev-parse --show-toplevel")
+  " See if the command output starts with 'fatal' (if it does, not in a git repo)
+  let l:isnotgitdir=matchstr(gitdir, '^fatal:.*')
+  " If it empty, there was no error. Let's cd
+  "if exists(l:gitdir)
+    "cd l:gitdir
+  if empty(l:isnotgitdir)
+    exe "lcd " . l:gitdir
+  endif
 endfunction
 
 function! EnterNeomake()
@@ -231,45 +245,47 @@ endfunction
 
 " Begin Custom Keymappings
 
- "Note: clipboard customizations
+ "Note: clipboard customizations.
  "let g:EasyClipEnableBlackHoleRedirectForChangeOperator = 0
  let g:EasyClipUseCutDefaults = 0
  let g:EasyClipUseSubstituteDefaults = 1
  noremap  <S-x>      <S-v>x
+ " cuts the char under cursor to an unused register
  nnoremap x          "_x
+ " cuts the char(s) under selection to the system register
  vnoremap x          "*x
+ " ctrl+v pasting from system clipboard
  inoremap <C-v>      <C-r>*
  cnoremap <C-v>      <C-r>*
 
  " Normal Mode Mappings
   " NeoTerm Mappings
-  let g:neoterm_position = 'horizontal'
-  let g:neoterm_automap_keys = ',tt'
-
   nnoremap <silent> <f10> :TREPLSendFile<cr>
   nnoremap <silent> <f9> :TREPLSend<cr>
   vnoremap <silent> <f9> :TREPLSend<cr>
 
   " run set test lib
-  nnoremap <silent> ,rt :call neoterm#test#run('all')<cr>
-  nnoremap <silent> ,rf :call neoterm#test#run('file')<cr>
-  nnoremap <silent> ,rn :call neoterm#test#run('current')<cr>
-  nnoremap <silent> ,rr :call neoterm#test#rerun()<cr>
+  nnoremap <silent> <leader>rt :call neoterm#test#run('all')<cr>
+  nnoremap <silent> <leader>rf :call neoterm#test#run('file')<cr>
+  nnoremap <silent> <leader>rn :call neoterm#test#run('current')<cr>
+  nnoremap <silent> <leader>rr :call neoterm#test#rerun()<cr>
 
   " Useful maps
+  " open terminal
+  nnoremap <silent> <leader>tt :call neoterm#toggle()<cr>
   " hide/close terminal
-  nnoremap <silent> ,th :call neoterm#close()<cr>
+  nnoremap <silent> <leader>th :call neoterm#close()<cr>
   " clear terminal
-  nnoremap <silent> ,tl :call neoterm#clear()<cr>
+  nnoremap <silent> <leader>tl :call neoterm#clear()<cr>
   " kills the current job (send a <c-c>)
-  nnoremap <silent> ,tc :call neoterm#kill()<cr>
+  nnoremap <silent> <leader>tc :call neoterm#kill()<cr>
 
   " Basic Mappings
   nnoremap  <silent>    <expr> <CR>    Highlighting()
   nnoremap <silent> <F5> :call Tabbufp()<CR>
   nnoremap <silent> <F6> :call Tabbufn()<CR>
-  "nnoremap <silent> <C-i> "=nr2char(getchar())<cr>P
-  "nnoremap <silent> <C-a> <right>"=nr2char(getchar())<cr>P
+  nnoremap <silent> <C-i> "=nr2char(getchar())<cr>P
+  nnoremap <silent> <C-a> <right>"=nr2char(getchar())<cr>P
   nnoremap  <silent>     gn              :lnext<cr>
   nnoremap  <silent>     gp              :lprev<cr>
   nnoremap  <silent>     @ws             :w<CR>:source<space>%<CR>:echom("Saved & Sourced Current File")<CR>
@@ -278,10 +294,14 @@ endfunction
   nnoremap               <leader>;       A;<esc>
   nnoremap               <Nul>           :b#<CR>
   nnoremap  <silent>     <F7> :GundoToggle<CR>
+  nnoremap       <silent> <C-c><C-c>      :call NERDComment(1, 'toggle')<cr>
+  nnoremap       <silent> <C-c>c          :call NERDComment(1, 'toggle')<cr>
 
  " Visual Mode Mappings
   vnoremap  <silent>    <leader><leader> <esc>
   vnoremap  <leader>ac  y:ag<space><C-R>0<space>-i
+  vnoremap       <silent> <C-c><C-c>      :call NERDComment(2, 'toggle')<cr>
+  vnoremap       <silent> <C-c>c          :call NERDComment(2, 'toggle')<cr>
 
  " Insert Mode Mappings
   inoremap               <leader><leader> <esc>
@@ -290,13 +310,10 @@ endfunction
   ca ag Ag!
   ca ColorTable XtermColorTable
   ca showcolors XtermColorTable
-  ca colors XtermColorTable
+  "ca colors XtermColorTable
   noremap       <C-f>           :NERDTreeToggle<CR>
   noremap       <C-b>           :BufExplorer<CR>
-  noremap       <C-c><C-c>      <plug>NERDCommenterToggle
-  noremap       <C-c>c          <plug>NERDCommenterToggle
   noremap       ;               :
-  noremap       <leader><leader>   <Plug>(easymotion-prefix)
 
  "Custom Colors:
   hi CursorColumn ctermbg=16
