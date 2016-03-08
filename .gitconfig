@@ -28,3 +28,4 @@
 	keepBackup = false
 [core]
 	excludesfile = ~/.gitignore
+	ignore = /Users/daniwood/.gitignore

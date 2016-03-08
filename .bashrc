@@ -23,7 +23,7 @@ alias vim="nvim $*"
 alias vi="vim $*"
 alias vimoe="cd ~/Workspace/one-exchange && vim $*"
 alias vims="vim -S $*"
-alias vvimdiff="vimdiff `git diff --name-only`"
+#alias vvimdiff="vimdiff `git diff --name-only`"
 
 #Navigation
 alias vimrc="vim ~/.vimrc"
@@ -39,7 +39,7 @@ alias guess="cd ~/OSS/rust/projects/guessing_game"
 find_and_open () {
   find . -name $1 | xargs vim
 }
-alias fopen=find_and_open
+alias edit=find_and_open
 EDITOR='vim';
 export EDITOR;
 #eval $(thefuck --alias)
@@ -66,3 +66,6 @@ daemon() {
 export NVM_DIR="/Users/daniwood/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 source ~/.bash_prompt
+#eval "$(thefuck --alias)"
+alias nr="npm run $*"
+alias oss="cd ~/OSS"

@@ -1,3 +1,12 @@
 /node_modules/
 .DS_Store
 Session.vim
+Neomake
+.tern-project
+tags
+.paket
+iisexpress
+ripple.config
+Web.config
+Web.config
+src/ExtendHealth.OneExchange/Web.config
