@@ -26,10 +26,15 @@
  \    }
  \ }
  " My Bundles here:
-  NeoBundle 'othree/yajs.vim'
+  NeoBundle 'othree/yajs.vim', { "merged": 0 }
+  NeoBundle 'OrangeT/vim-csharp', { "merged": 0 }
+  NeoBundle 'tpope/vim-dispatch'
+  NeoBundle 'OmniSharp/omnisharp-vim'
+  NeoBundle 'https://gitlab.com/mixedCase/deoplete-omnisharp.git'
   NeoBundle 'benekastah/neomake'
   NeoBundle 'kassio/neoterm'
   NeoBundle 'carlitux/deoplete-ternjs'
+  NeoBundle 'theamazingfedex/vim-which'
   NeoBundle 'airblade/vim-gitgutter'
   NeoBundle 'ompugao/vim-airline-datetime'
   NeoBundle 'simnalamburt/vim-mundo'
@@ -43,8 +48,6 @@
   NeoBundle 'Raimondi/delimitMate'
   NeoBundle 'Shougo/deoplete.nvim'
   NeoBundle 'reedes/vim-lexical'
-  "NeoBundle 'suan/vim-instant-markdown'
-  "NeoBundle 'tpope/vim-markdown'
   NeoBundle 'euclio/vim-markdown-composer', { 'build_commands': 'cargo build --release' }
   NeoBundle 'ternjs/tern_for_vim', { 'build_commands': 'npm install' }
   NeoBundle 'SirVer/ultisnips'
@@ -67,6 +70,8 @@
   NeoBundle 'vim-javascript'
   NeoBundle 'mxw/vim-jsx'
   NeoBundle 'Shougo/neco-vim'
+  NeoBundle 'rust-lang/rust.vim'
+  NeoBundle 'racer-rust/vim-racer'
 
 
  " Refer to |:NeoBundle-examples|.
@@ -101,6 +106,8 @@
    let g:jsx_ext_required = 0
    let g:markdown_composer_syntax_theme='monokai'
    let g:markdown_fenced_languages = ['html', 'javascript', 'vim', 'python', 'bash=sh']
+   let g:OmniSharp_selector_ui = 'deoplete'
+   let g:OmniSharp_selector_ui = 'ctrlp'
    if filereadable(".eslintrc") != 0
      set tabstop=2
      set shiftwidth=2
@@ -150,6 +157,7 @@
   augroup myomnifuncs
     au!
     au FileType javascript,jsx setl omnifunc=tern#Complete
+    au FileType cs set omnifunc=OmniSharp#Complete
   augroup END
 
   let g:lexical#thesaurus = ['~/.vim/thesaurus/mthesaur.txt',]
@@ -160,7 +168,7 @@
   let g:lexical#dictionary_key = '<leader>rd'
   augroup lexical
     autocmd!
-    autocmd FileType markdown,mkd,md,textile,text call lexical#init()
+    autocmd FileType markdown,mkd,md,textile,text,html call lexical#init()
   augroup END
 
   "augroup esformatter
@@ -180,15 +188,59 @@
     au! VimEnter * call SetGitDir()
     au! VimLeave,TermClose,BufHidden,BufWinLeave,BufLeave,BufFilePost,BufDelete,BufWipeout *.js lcl
     "Note: read in .spark files as html for syntax highlighting
+    au! BufRead,BufNewFile *.ejs set filetype=html
     au! BufRead,BufNewFile *.spark set filetype=html
     "Note: run eslint when opening and writing js files
     "au! InsertChange,TextChanged *.js update | Neomake eslint
+    "au! Filetype rust setlocal makeprg=Rustmake('%:p:h','%:t')
+    "au! Filetype javascript setlocal makeprg=JSmake('%:p:h','%:t')
+    "au! TextYankPost,InsertLeave,BufEnter,BufWritePost *.rs call Rustmake('%:p:h','%:t')
+    "au! TextYankPost,InsertLeave,BufEnter,BufWritePost *.js call JSmake('%:p:h','%:t')
+    "au! BufEnter,BufWritePost * Neomake
+    "au TextYankPost * echom "TextYankPost event was fired"
     au! BufEnter *.js call EnterNeomake()
     au! BufWritePost *.js call SaveNeomake()
     au! InsertLeave,CompleteDone * if pumvisible() == 0 | pclose | endif
   augroup END
-" Begin plugin configuration
- " Airline
+
+  "augroup mygroup2
+    "au!
+    ""au! BufFilePre if %:t =~ ".tmp" set nobuflisted
+    "au TextYankPost,InsertLeave,BufEnter,BufWritePost * if bufname("\.tmp*") | set nobuflisted
+    ""au! BufFilePre * if %:t =~ "\.tmp" | set nobuflisted
+  "augroup END
+
+
+  function! JSmake(place, file)
+    if filereadable("\.tmp*".a:file)
+      let temp#jsmake#path = expand(a:place) . '/'.expand(a:file)
+    else
+      let temp#jsmake#path = expand(a:place) . '/.tmp.'.expand(a:file)
+    endif
+    "echom temp#jsmake#path
+    let g:neomake_javascript_eslint_maker = {
+          \ 'args': ['--quiet', '-f', 'compact', '--stdin', '--stdin-filename', ''.temp#jsmake#path],
+          \ 'errorformat': '%E%f: line %l\, col %c\, Error - %m,' .
+          \ '%W%f: line %l\, col %c\, Warning - %m'
+          \ }
+    execute 'silent update! '.fnameescape(temp#jsmake#path)
+
+    let temp#jsmake#cmd = 'echo '.fnameescape(temp#jsmake#path).' | /mnt/Resources/Workspace/one-exchange/node_modules/.bin/eslint --stdin'
+    execute "NeomakeSh ".temp#jsmake#cmd
+  endfunction
+
+  function! Rustmake(place, file)
+    let temp#rustmake#path = expand(a:place) . '/.tmp.'.expand(a:file)
+    echom temp#rustmake#path
+    execute 'silent write! '.fnameescape(temp#rustmake#path)
+
+    let temp#rustmake#cmd = 'rustc -Z parse-only '.fnameescape(temp#rustmake#path)
+    execute "NeomakeSh ".temp#rustmake#cmd
+  endfunction
+
+
+  " Begin plugin configuration
+  " Airline
   let g:airline#extensions#tabline#show_tab_nr = 1
   let g:airline#extensions#tabline#show_close_button = 1
   let g:airline#extensions#tabline#buffer_nr_show = 1
@@ -252,7 +304,7 @@
     "if findfile('.eslintrc', '.;') ==# ''
       "let g:neomake_javascript_enabled_makers = ['standard']
     "else
-      let g:neomake_javascript_enabled_makers = ['standard', 'eslint']
+      let g:neomake_javascript_enabled_makers = ['eslint', 'rustc']
     "endif
     "if !executable("eslint")
     ""if g:eslint_path = ""
@@ -261,7 +313,7 @@
     ""endif
     "endif
     let g:neomake_verbose=1
-    let g:neomake_open_list=2
+    let g:neomake_open_list=0
     let g:neomake_list_height=10
     "let g:neomake_javascript_eslint_maker = {
         "\ 'args': ['--quiet', '-f', 'compact', '--stdin', '--stdin-filename', '%:p'],
@@ -339,13 +391,12 @@ endfunction
 function! EnterNeomake()
   " don't show the loc-list when entering a buffer
   let g:neomake_open_list=0
-  exe "Neomake eslint"
+  exe "Neomake"
 endfunction
 
 function! SaveNeomake()
   " show the loc-list after saving
-  let g:neomake_open_list=2
-  exe "Neomake eslint"
+  exe "Neomake"
 endfunction
 
 function! Tabbufn()
@@ -380,6 +431,13 @@ endfunction
  inoremap <C-v>      <C-r>*
  cnoremap <C-v>      <C-r>*
 
+ " OmniSharp Mappings
+  augroup OmniMappings
+    au! FileType *.cs map <leader>td :OmniSharpGotoDefinition
+    au! FileType *.cs ca reload :OmniSharpReloadSolution
+  augroup END
+    ca build OmniSharpBuildAsync
+    ca reload OmniSharpReloadSolution
  " Normal Mode Mappings
   " NeoTerm Mappings
   "nnoremap <silent> <f10> :TREPLSendFile<cr>
@@ -444,51 +502,71 @@ endfunction
   noremap       <C-b>           :BufExplorer<CR>
   noremap       <C-f>           :NERDTreeToggle<CR>
   noremap               <leader><leader> <esc>
-  nnoremap <silent> <C-w>e :lopen<cr>
-  nnoremap <silent> <leader>x    :pcl<cr>
-  nnoremap <silent> <C-w><C-e> :lclose<cr>
-  nnoremap <silent> <F5> :call Tabbufp()<CR>
-  nnoremap <silent> <F6> :call Tabbufn()<CR>
-  nnoremap  <silent>     <F7> :MundoToggle<CR>
-  nnoremap               <Nul>           :b#<CR>
+  nnoremap   <silent> <C-w>e :lopen<cr>
+  nnoremap   <silent> <leader>x    :pcl<cr>
+  nnoremap   <silent> <C-w><C-e> :lclose<cr>
+  nnoremap   <silent> <F5> :call Tabbufp()<CR>
+  nnoremap   <silent> <F6> :call Tabbufn()<CR>
+  nnoremap   <silent>     <F7> :MundoToggle<CR>
+  nnoremap               <Nul>           <C-^>
   nnoremap               <leader>;       A;<esc>
-  nnoremap  <silent>     ge              :ll<cr>
-  nnoremap  <silent>     gn              :lnext<cr>
-  nnoremap  <silent>     gp              :lprev<cr>
-  nnoremap <silent> <C-i> "=nr2char(getchar())<cr>P
-  nnoremap  <silent>    <expr> <CR>    Highlighting()
-  nnoremap <silent> <leader>g :call ToggleGitGutter()<cr>
-  nnoremap <silent> <C-a> <right>"=nr2char(getchar())<cr>P
-  nnoremap  <silent>     <leader>p       :ClearCtrlPCache<CR>\|:CtrlP<CR>
-  nnoremap       <silent> <C-c><C-c>      :call NERDComment(1, 'toggle')<cr>
-  nnoremap       <silent> <C-c>c          :call NERDComment(1, 'toggle')<cr>
-  nnoremap  <silent>     @s              :source<space>%<CR>:echom("Sourced Current File")<CR>
-  nnoremap  <silent>     @ws             :w<CR>:source<space>%<CR>:echom("Saved & Sourced Current File")<CR>
-  nnoremap <silent> <leader>tb   :TernDocBrowse<cr>
-  nnoremap <silent> <leader>tm   :TernRename<cr>
-  nnoremap <silent> <leader>tv   :TernDefSplit<cr>
-  nnoremap <silent> <leader>tr   :TernRefs<cr>
-  nnoremap <silent> <leader>tt   :TernType<cr>
-  nnoremap <silent> <leader>td   :TernDoc<cr>
-  nnoremap <silent> <leader>tf   :TernDef<cr>
+  nnoremap   <silent>     ge              :ll<cr>
+  nnoremap   <silent>     gn              :lnext<cr>
+  nnoremap   <silent>     gp              :lprev<cr>
+  nnoremap   <silent> <C-i> "=nr2char(getchar())<cr>P
+  nnoremap   <silent>    <expr> <CR>    Highlighting()
+  nnoremap   <silent> <leader>g :call ToggleGitGutter()<cr>
+  nnoremap   <silent> <C-a> <right>"=nr2char(getchar())<cr>P
+  nnoremap   <silent>     <leader>p       :ClearCtrlPCache<CR>\|:CtrlP<CR>
+  nnoremap   <silent> <C-c><C-c>      :call NERDComment(1, 'toggle')<cr>
+  nnoremap   <silent> <C-c>c          :call NERDComment(1, 'toggle')<cr>
+  nnoremap   <silent>     @s              :source<space>%<CR>:echom("Sourced Current File")<CR>
+  nnoremap   <silent>     @ws             :w<CR>:source<space>%<CR>:echom("Saved & Sourced Current File")<CR>
+
+  augroup TernDocs
+    au! FileType *.js nnoremap   <silent> <leader>tb   :TernDocBrowse<cr>
+    au! FileType *.js nnoremap   <silent> <leader>tm   :TernRename<cr>
+    au! FileType *.js nnoremap   <silent> <leader>tv   :TernDefSplit<cr>
+    au! FileType *.js nnoremap   <silent> <leader>tr   :TernRefs<cr>
+    au! FileType *.js nnoremap   <silent> <leader>tt   :TernType<cr>
+    au! FileType *.js nnoremap   <silent> <leader>td   :TernDoc<cr>
+    au! FileType *.js nnoremap   <silent> <leader>tf   :TernDef<cr>
+  augroup END
 
  " Visual Mode Mappings
-  vnoremap  <Leader>su ! awk '{ print length(), $0 \| "sort -n \| cut -d\\  -f2-" }'<cr>
-  vnoremap  <silent>    <leader><leader> <esc>
-  vnoremap  <leader>ac  y:ag<space><C-R>0<space>-i
-  vnoremap       <silent> <C-c><C-c>      :call NERDComment(2, 'toggle')<cr>
-  vnoremap       <silent> <C-c>c          :call NERDComment(2, 'toggle')<cr>
+  vnoremap   <Leader>su ! awk '{ print length(), $0 \| "sort -n \| cut -d\\  -f2-" }'<cr>
+  vnoremap   <silent>    <leader><leader> <esc>
+  vnoremap   <leader>ac  y:ag<space><C-R>0<space>-i
+  vnoremap   <silent> <C-c><C-c>      :call NERDComment(2, 'toggle')<cr>
+  vnoremap   <silent> <C-c>c          :call NERDComment(2, 'toggle')<cr>
 
  " Insert Mode Mappings
-  inoremap               <leader><leader> <esc>
+  inoremap   <leader><leader> <esc>
+  inoremap   {<Tab> {<cr>}<left><cr><up><tab>
+  inoremap   {<Space><Space> {<cr>}<left><cr><up><tab>
   " deoplete tab-complete
-  inoremap <silent><expr> <Tab> pumvisible() ? "\<C-n>" : deoplete#mappings#manual_complete()
+  inoremap   <silent><expr> <Tab> pumvisible() ? "\<C-n>" : deoplete#mappings#manual_complete()
 
  " Complete Mappings
   ca ag Ag!
   ca ColorTable XtermColorTable
   ca showcolors XtermColorTable
   ca colors XtermColorTable
+  ca so So
+  "ca which Which
+
+  "function! MyWhich(...)
+    "if a:0 > 0
+      "redir => which
+      "silent execute('!which ' . a:1)
+      "redir END
+    "else
+      "echo expand('%:p')
+    "endif
+  "endfunction
+  "command! -nargs=* Which call MyWhich(<f-args>)
+
+  command! -bar -range So silent <line1>,<line2>yank z | let @z = substitute(@z, '\n\s*\\', '', 'g') | @z
 
  "Custom Colors:
   hi CursorColumn ctermbg=16
